@@ -1,0 +1,163 @@
+---
+title: "Assignment 5"
+subtitle: "World Development Indicators Analysis 2022"
+author: "Minjoo Kim"
+date: "2025-02-24"
+format:
+    html:
+        code-fold: true
+    pdf:
+        toc: true
+        number-sections: true
+        colorlinks: true
+bibliography: references.bib
+---
+
+# Introduction
+This report analyzes the World Development Indicators dataset from 2022, focusing on key developmental metrics across different countries.
+
+## Loading the Data
+```{python}
+#| label: setup
+#| warning: false
+#| message: false
+
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Read the dataset
+df = pd.read_csv('wdi.csv')
+df
+```
+
+# Exploratory Data Analysis
+
+## GDP Per Capita Analysis
+```{python}
+#| label: fig-gdp-distribution
+#| fig-cap: "Distribution of GDP per capita across countries"
+#| code-fold: true
+#| warning: false
+
+# Display basic statistics for GDP per capita
+gdp_stats = df['gdp_per_capita'].describe()
+print("GDP per capita statistics:")
+print(gdp_stats)
+
+# Create a histogram
+plt.figure(figsize=(10, 6))
+sns.histplot(df['gdp_per_capita'].dropna(), bins=30, kde=True)
+plt.title('Distribution of GDP per Capita (2022)')
+plt.xlabel('GDP per Capita (USD)')
+plt.ylabel('Number of Countries')
+plt.axvline(df['gdp_per_capita'].mean(), color='red', linestyle='--', 
+            label=f'Mean: ${df["gdp_per_capita"].mean():.2f}')
+plt.axvline(df['gdp_per_capita'].median(), color='green', linestyle='--', 
+            label=f'Median: ${df["gdp_per_capita"].median():.2f}')
+plt.legend()
+plt.show()
+```
+
+The distribution of GDP per capita in @fig-gdp-distribution shows significant inequality across countries. We observe:
+- A strong positive skew, with many countries clustered at lower GDP values
+- A long tail extending to higher-income countries
+- A substantial difference between mean and median values, further indicating skewed distribution
+- Several outlier countries with exceptionally high GDP per capita
+
+## Life Expectancy Analysis
+```{python}
+#| label: fig-gdp-life
+#| fig-cap: "Relationship between GDP per capita and life expectancy"
+#| code-fold: true
+#| warning: false
+
+# Calculate correlation
+correlation = df['gdp_per_capita'].corr(df['life_expectancy'])
+
+# Create scatter plot
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=df, x='gdp_per_capita', y='life_expectancy', alpha=0.7)
+plt.title('GDP per Capita vs Life Expectancy')
+plt.xlabel('GDP per Capita (USD)')
+plt.ylabel('Life Expectancy (years)')
+
+# Add a logarithmic trendline
+x = df['gdp_per_capita'].dropna()
+y = df['life_expectancy'].dropna()
+mask = ~np.isnan(x) & ~np.isnan(y)
+x = x[mask]
+y = y[mask]
+if len(x) > 0:
+    z = np.polyfit(np.log(x+1), y, 1)
+    p = np.poly1d(z)
+    x_sorted = np.sort(x)
+    plt.plot(x_sorted, p(np.log(x_sorted+1)), "r--", 
+             label=f"Trend (correlation={correlation:.2f})")
+    plt.legend()
+
+plt.show()
+```
+
+Our scatterplot shown in @fig-gdp-life reveals:
+- A strong positive correlation between GDP per capita and life expectancy
+- The relationship appears logarithmic rather than linear, suggesting diminishing returns
+- Life expectancy tends to plateau at higher income levels
+- There is still significant variation in life expectancy among countries with similar GDP levels, suggesting other factors play important roles
+
+## Education and Health Indicators
+```{python}
+#| label: fig-education-health
+#| fig-cap: "Relationship between education expenditure and immunization rates"
+#| code-fold: true
+#| warning: false
+
+# Create quartiles of education expenditure for grouped analysis
+df['edu_quartiles'] = pd.qcut(df['education_expenditure_gdp_share'].dropna(), 4, labels=['Q1 (Lowest)', 'Q2', 'Q3', 'Q4 (Highest)'])
+
+# Simple bar chart comparing education quartiles to immunization rates
+plt.figure(figsize=(10, 6))
+sns.barplot(x='edu_quartiles', y='measles_immunisation_rate', data=df.dropna(subset=['edu_quartiles', 'measles_immunisation_rate']))
+plt.title('Education Expenditure vs Immunization Rates')
+plt.xlabel('Education Expenditure Quartiles (% of GDP)')
+plt.ylabel('Mean Measles Immunization Rate (%)')
+plt.ylim(0, 100)  # Set y-axis to percentage scale
+plt.axhline(y=df['measles_immunisation_rate'].mean(), color='r', linestyle='--', 
+           label=f'Overall Mean: {df["measles_immunisation_rate"].mean():.1f}%')
+plt.legend()
+plt.tight_layout()
+plt.show()
+```
+
+As shown in @fig-education-health, there is a relationship between a country's investment in education and public health outcomes:
+- Countries in higher education expenditure quartiles generally show better immunization coverage
+- The trend suggests that investment in education may have positive spillover effects on health outcomes
+- This correlation could reflect broader government priorities in human development
+- The difference between the lowest and highest quartiles demonstrates how resource allocation impacts population health
+
+
+# Key Statistics Summary
+```{python}
+#| label: tbl-stats
+#| tbl-cap: "Summary Statistics of Key Development Indicators"
+#| warning: false
+
+summary_stats = df[['gdp_per_capita', 'life_expectancy', 'education_expenditure_gdp_share', 'measles_immunisation_rate']].describe()
+
+corr_matrix = df[['gdp_per_capita', 'life_expectancy', 'education_expenditure_gdp_share', 'measles_immunisation_rate']].corr().round(2)
+display(summary_stats)
+display(corr_matrix)
+```
+
+Table @tbl-stats highlights key statistics from the analysis, highlighting the range and distribution of development indicators across countries. The standard deviations across all metrics underscore the global inequality in development outcomes.
+
+# Conclusion
+This analysis of World Development Indicators reveals several important patterns in global development:
+1. Economic prosperity, as measured by GDP per capita, remains highly unequal across countries
+2. There is a strong but non-linear relationship between economic development and health outcomes
+3. Countries that invest more in education tend to have better health outcomes
+
+# References
+[@worldbank2022]
+[@development_indicators]

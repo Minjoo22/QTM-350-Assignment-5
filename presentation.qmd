@@ -1,0 +1,161 @@
+---
+title: "Assignment 5"
+subtitle: "World Development Indicators Analysis"
+author: "Minjoo Kim"
+date: "2025-02-24"
+format:
+    revealjs:
+        theme: moon
+        transition: slide
+        slide-number: true
+        incremental: true
+        footer: "World Development Indicators 2022"
+---
+
+# Introduction {.center}
+
+This presentation highlights key findings from our analysis of the **World Development Indicators** dataset for 2022.
+
+- Focus on 3 key areas:
+  - Economic prosperity (GDP per capita)
+  - Health outcomes (Life expectancy)
+  - Investment in human capital (Education expenditure)
+
+# GDP Per Capita Distribution
+
+```{python}
+#| echo: false
+#| fig-width: 10
+#| fig-height: 6
+#| label: fig-gdp-dist-slide
+#| fig-cap: "Distribution of GDP per capita across countries (2022)"
+
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Read the dataset
+df = pd.read_csv('wdi.csv')
+
+# Create a histogram
+plt.figure(figsize=(10, 6))
+sns.histplot(df['gdp_per_capita'].dropna(), bins=30, kde=True)
+plt.title('Distribution of GDP per Capita (2022)')
+plt.xlabel('GDP per Capita (USD)')
+plt.ylabel('Number of Countries')
+plt.axvline(df['gdp_per_capita'].mean(), color='red', linestyle='--', 
+            label=f'Mean: ${df["gdp_per_capita"].mean():.2f}')
+plt.axvline(df['gdp_per_capita'].median(), color='green', linestyle='--', 
+            label=f'Median: ${df["gdp_per_capita"].median():.2f}')
+plt.legend()
+plt.tight_layout()
+```
+
+# Key Observations: GDP Per Capita {.smaller}
+
+Our analysis reveals significant global inequality:
+
+- Strong positive skew in distribution
+- Large gap between mean and median GDP per capita
+- Many countries clustered at lower income levels
+- Small number of high-income outliers
+
+# GDP vs Life Expectancy
+
+```{python}
+#| echo: false
+#| fig-width: 10
+#| fig-height: 6
+#| label: fig-gdp-life-slide
+#| fig-cap: "Relationship between GDP per capita and life expectancy"
+
+# Calculate correlation
+correlation = df['gdp_per_capita'].corr(df['life_expectancy'])
+
+# Create scatter plot
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=df, x='gdp_per_capita', y='life_expectancy', alpha=0.7)
+plt.title('GDP per Capita vs Life Expectancy')
+plt.xlabel('GDP per Capita (USD)')
+plt.ylabel('Life Expectancy (years)')
+
+# Add a logarithmic trendline
+x = df['gdp_per_capita'].dropna()
+y = df['life_expectancy'].dropna()
+mask = ~np.isnan(x) & ~np.isnan(y)
+x = x[mask]
+y = y[mask]
+if len(x) > 0:
+    z = np.polyfit(np.log(x+1), y, 1)
+    p = np.poly1d(z)
+    x_sorted = np.sort(x)
+    plt.plot(x_sorted, p(np.log(x_sorted+1)), "r--", 
+             label=f"Trend (correlation={correlation:.2f})")
+    plt.legend()
+
+plt.tight_layout()
+```
+
+# Key Observations: Life Expectancy {.smaller}
+
+The relationship between wealth and health:
+
+- Strong positive correlation
+- Logarithmic rather than linear relationship
+- Diminishing returns at higher income levels
+- Significant variation among similar-income countries
+
+# Education and Health Outcomes
+
+```{python}
+#| echo: false
+#| fig-width: 10
+#| fig-height: 6
+#| label: fig-edu-health-slide
+#| fig-cap: "Relationship between education expenditure and immunization rates"
+
+# Create quartiles of education expenditure for grouped analysis
+df['edu_quartiles'] = pd.qcut(df['education_expenditure_gdp_share'].dropna(), 4, 
+                             labels=['Q1 (Lowest)', 'Q2', 'Q3', 'Q4 (Highest)'])
+
+# Simple bar chart comparing education quartiles to immunization rates
+plt.figure(figsize=(10, 6))
+sns.barplot(x='edu_quartiles', y='measles_immunisation_rate', 
+           data=df.dropna(subset=['edu_quartiles', 'measles_immunisation_rate']))
+plt.title('Education Expenditure vs Immunization Rates')
+plt.xlabel('Education Expenditure Quartiles (% of GDP)')
+plt.ylabel('Mean Measles Immunization Rate (%)')
+plt.ylim(0, 100)  # Set y-axis to percentage scale
+plt.axhline(y=df['measles_immunisation_rate'].mean(), color='r', linestyle='--', 
+           label=f'Overall Mean: {df["measles_immunisation_rate"].mean():.1f}%')
+plt.legend()
+plt.tight_layout()
+```
+
+# Key Statistics
+
+```{python}
+#| echo: false
+#| label: tbl-stats-slide
+#| tbl-cap: "Summary Statistics of Key Development Indicators (2022)"
+
+# Create a summary table of key indicators
+summary_stats = df[['gdp_per_capita', 'life_expectancy', 'education_expenditure_gdp_share', 
+                   'measles_immunisation_rate']].describe().round(2)
+
+summary_stats
+```
+
+# Conclusions {.smaller}
+
+Our analysis of World Development Indicators reveals:
+
+1. **Economic inequality** remains substantial across countries
+2. **Health outcomes** show strong but non-linear correlation with economic development
+3. **Education investment** appears linked to better health outcomes
+4. **Holistic development** approaches may yield synergistic benefits
+
+# Thank You! {.center background-color="#3C3C4C"}
+
+Questions?
